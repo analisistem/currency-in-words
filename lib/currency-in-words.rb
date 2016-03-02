@@ -217,7 +217,7 @@ module CurrencyInWords
 
   ####
   # :nodoc: all
-  # This is the strategy class for English language
+  # This is the strategy class for Spanish language
   class EsTexterizer
 
     def texterize context
@@ -240,6 +240,8 @@ module CurrencyInWords
       int_unit = int_part > 1 ? int_unit_many : int_unit_one
       dec_unit = dec_part > 1 ? dec_unit_many : dec_unit_one
 
+      int_unit = "de #{int_unit}" if int_part.modulo(1000000) == 0
+
       texterized_int_part = (texterize_by_group(int_part).compact << int_unit).flatten.join(' ')
       texterized_dec_part = (texterize_by_group(dec_part).compact << dec_unit).flatten.join(' ')
 
@@ -253,7 +255,7 @@ module CurrencyInWords
     private
 
     # :nodoc: all
-    A = %w(cero uno dos tres cuatro cinco seis siete ocho nueve)
+    A = %w(cero un dos tres cuatro cinco seis siete ocho nueve)
     B = %w(diez once doce trece catorce quince dieciséis diecisiete dieciocho diecinueve)
     C = [nil, nil, 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa']
     D = [nil, 'mil', 'millón', 'mil millones', 'billón', 'mil billones',  'trillón', 'sextillón', 'septillón', 'octillón']
@@ -269,18 +271,26 @@ module CurrencyInWords
         arr = arr.to_a
         unless group.zero?
           arr << under_1000(r)
-          arr << D[group] + (',' if @delimiter).to_s
+          arr << pluralize_after_1000(D[group], r) + (',' if @delimiter).to_s
         else
           arr.last.chop!  if @delimiter && r < 100 && arr.last.respond_to?('chop!')
-          arr << 'and'    if !@skip_and && q > 0 && r < 100
+          arr << 'y'    if !@skip_and && q > 0 && r < 100
           arr << under_1000(r)
         end
       end
     end
 
+    def pluralize_after_1000(d_group, r)
+      return d_group unless r && D.index(d_group).to_i > 1
+      r > 1 ? "#{d_group}es" : d_group
+    end
+
     def under_1000 number
       q,r = number.divmod 100
-      arr = ([A[q]] << 'hundred' + (' and' unless @skip_and || r.zero?).to_s) if q > 0
+      if q > 0
+        _and = (' y' unless @skip_and || r.zero?).to_s
+        arr = q == 1 ? ([] << 'cien' + (r > 0 ? 'to' : '') + _and) : ([A[q]] << 'cientos' + _and)
+      end
       r.zero? ? arr : arr.to_a << under_100(r)
     end
 
@@ -290,7 +300,7 @@ module CurrencyInWords
       when 10..19 then B[number - 10]
       else
         q,r = number.divmod 10
-        C[q] + ('-' + A[r] unless r.zero?).to_s
+        C[q] + (' ' + A[r] unless r.zero?).to_s
       end
     end
   end
