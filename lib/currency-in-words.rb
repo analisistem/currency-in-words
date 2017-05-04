@@ -289,7 +289,18 @@ module CurrencyInWords
       q,r = number.divmod 100
       if q > 0
         _and = (' y' unless @skip_and || r.zero?).to_s
-        arr = q == 1 ? ([] << 'cien' + (r > 0 ? 'to' : '') + _and) : ([A[q]] << 'cientos' + _and)
+        arr = case q
+        when 1
+          ([] << 'cien' + (r > 0 ? 'to' : '') + _and)
+        when 5
+          ([] << 'quinientos'+ _and)
+        when 7
+          ([] << 'setecientos' + _and)
+        when 9
+          ([] << 'novecientos' + _and)
+        else
+          ([A[q]] << 'cientos' + _and)
+        end
       end
       r.zero? ? arr : arr.to_a << under_100(r)
     end
